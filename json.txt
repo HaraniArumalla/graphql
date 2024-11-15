@@ -1,0 +1,331 @@
+{
+  "allResources": [
+    {
+      "__typename": "Account",
+      "id": "acc-123",
+      "name": "Primary Account",
+      "createdDate": "2024-11-01",
+      "updatedDate": "2024-11-10",
+      "description": "This is a test account",
+      "tenant": {
+        "id": "tenant-001",
+        "name": "Test Tenant"
+      }
+    },
+    {
+      "__typename": "Role",
+      "id": "role-001",
+      "name": "Admin",
+      "createdDate": "2024-11-01",
+      "updatedDate": null,
+      "version": "1.0",
+      "description": "Admin role with full permissions",
+      "permissions": [
+        {
+          "id": "perm-001",
+          "name": "ReadAccess",
+          "action": "READ"
+        }
+      ],
+      "roleType": "DEFAULT"
+    },
+    {
+      "__typename": "Tenant",
+      "id": "tenant-001",
+      "name": "Test Tenant",
+      "createdDate": "2024-10-15",
+      "updatedDate": null,
+      "description": "A new tenant organization"
+    },
+    {
+      "__typename": "User",
+      "id": "user-001",
+      "name": "Alice Smith",
+      "firstName": "Alice",
+      "lastName": "Smith",
+      "email": "alice.smith@example.com",
+      "createdDate": "2024-11-12",
+      "updatedDate": null,
+      "tenant": {
+        "id": "tenant-003",
+        "name": "New Tenant"
+      }
+    },
+    {
+      "__typename": "ClientOrganizationUnit",
+      "id": "org-unit-001",
+      "name": "Client Org Unit",
+      "createdDate": "2024-10-20",
+      "updatedDate": null,
+      "description": "Client organization unit",
+      "tenant": {
+        "id": "tenant-001",
+        "name": "Another Tenant"
+      }
+    }
+  ],
+  "allOrganizations": [
+    {
+      "__typename": "Root",
+      "id": "root-001",
+      "name": "Global Root",
+      "createdDate": "2024-01-01",
+      "updatedDate": null,
+      "description": "Root organization for global access"
+    },
+    {
+      "__typename": "Tenant",
+      "id": "tenant-001",
+      "name": "Primary Tenant",
+      "createdDate": "2024-10-01",
+      "updatedDate": null,
+      "description": "Main tenant organization"
+    },
+    {
+      "__typename": "ClientOrganizationUnit",
+      "id": "org-unit-001",
+      "name": "Client Unit",
+      "createdDate": "2024-11-01",
+      "updatedDate": null,
+      "description": "Client organization unit"
+    }
+  ],
+  "allTenants": [
+    {
+      "id": "tenant-001",
+      "name": "Test Tenant",
+      "createdDate": "2024-11-01",
+      "updatedDate": null,
+      "description": "Main tenant description",
+      "parentOrg": {
+        "__typename": "Root",
+        "id": "root-001",
+        "name": "Global Root",
+        "description": "This is the global root organization"
+      },
+      "contactInfo": {
+        "id": "contact-001",
+        "email": "contact@example.com",
+        "phoneNumber": "123-456-7890",
+        "address": {
+          "id": "address-001",
+          "street": "123 Main St",
+          "city": "New York",
+          "state": "NY",
+          "zipCode": "10001",
+          "country": "USA"
+        }
+      }
+    }
+  ],
+  "allAccounts": [
+    {
+      "id": "account-001",
+      "name": "Account 1",
+      "createdDate": "2024-11-10",
+      "updatedDate": null,
+      "description": "Description of account",
+      "tenant": {
+        "id": "tenant-001",
+        "name": "Test Tenant"
+      },
+      "parentOrg": {
+        "__typename": "Root",
+        "id": "tenant-001",
+        "name": "Test Tenant",
+        "description": "This is the global root organization"
+      },
+      "billingInfo": {
+        "id": "billing-001",
+        "creditCardNumber": "4111111111111111",
+        "creditCardType": "Visa",
+        "expirationDate": "12/25",
+        "cvv": "123",
+        "billingAddress": {
+          "id": "address-001",
+          "street": "123 Main St",
+          "city": "New York",
+          "state": "NY",
+          "zipCode": "10001",
+          "country": "USA"
+        }
+      }
+    }
+  ],
+  "allRoles": [
+    {
+      "id": "role-001",
+      "name": "Admin Role",
+      "createdDate": "2024-11-10",
+      "updatedDate": null,
+      "version": "v1",
+      "description": "Admin role with full permissions",
+      "permissions": [
+        {
+          "id": "perm-001",
+          "name": "Read Access",
+          "action": "read",
+          "service": {
+            "id": "service-001",
+            "name": "User Service"
+          }
+        }
+      ],
+      "roleType": "DEFAULT",
+      "assignableScope": {
+        "__typename": "ClientOrganizationUnit",
+        "id": "org-unit-001",
+        "name": "Org Unit 1"
+      }
+    }
+  ],
+  "allPermissions": [
+    {
+      "id": "perm-001",
+      "name": "ReadAccess",
+      "action": "READ",
+      "service": {
+        "id": "service-001",
+        "name": "UserService"
+      }
+    },
+    {
+      "id": "perm-002",
+      "name": "WriteAccess",
+      "action": "WRITE",
+      "service": {
+        "id": "service-001",
+        "name": "UserService"
+      }
+    },
+    {
+      "id": "perm-003",
+      "name": "DeleteAccess",
+      "action": "DELETE",
+      "service": {
+        "id": "service-002",
+        "name": "BillingService"
+      }
+    },
+    {
+      "id": "perm-004",
+      "name": "UpdateAccess",
+      "action": "UPDATE",
+      "service": {
+        "id": "service-003",
+        "name": "OrderService"
+      }
+    },
+    {
+      "id": "perm-005",
+      "name": "CreateAccess",
+      "action": "CREATE",
+      "service": {
+        "id": "service-003",
+        "name": "OrderService"
+      }
+    },
+    {
+      "id": "perm-006",
+      "name": "ManageAccess",
+      "action": "MANAGE",
+      "service": {
+        "id": "service-004",
+        "name": "InventoryService"
+      }
+    },
+    {
+      "id": "perm-007",
+      "name": "ViewReports",
+      "action": "VIEW",
+      "service": {
+        "id": "service-005",
+        "name": "ReportService"
+      }
+    },
+    {
+      "id": "perm-008",
+      "name": "ExportData",
+      "action": "EXPORT",
+      "service": {
+        "id": "service-005",
+        "name": "ReportService"
+      }
+    },
+    {
+      "id": "perm-009",
+      "name": "FullAccess",
+      "action": "FULL",
+      "service": {
+        "id": "service-006",
+        "name": "AdminService"
+      }
+    }
+  ],
+  "allBillingInfos": [
+    {
+      "id": "billing-001",
+      "creditCardNumber": "4111111111111111",
+      "creditCardType": "VISA",
+      "expirationDate": "12/25",
+      "cvv": "123",
+      "billingAddress": {
+        "id": "billing-address-001",
+        "street": "123 Elm St",
+        "city": "Springfield",
+        "state": "IL",
+        "zipCode": "62701",
+        "country": "USA"
+      }
+    },
+    {
+      "id": "billing-002",
+      "creditCardNumber": "5500000000000004",
+      "creditCardType": "MASTERCARD",
+      "expirationDate": "11/24",
+      "cvv": "456",
+      "billingAddress": {
+        "id": "billing-address-002",
+        "street": "456 Oak St",
+        "city": "Boston",
+        "state": "MA",
+        "zipCode": "02108",
+        "country": "USA"
+      }
+    },
+    {
+      "id": "billing-003",
+      "creditCardNumber": "378282246310005",
+      "creditCardType": "AMEX",
+      "expirationDate": "08/26",
+      "cvv": "789",
+      "billingAddress": {
+        "id": "billing-address-003",
+        "street": "789 Pine St",
+        "city": "Seattle",
+        "state": "WA",
+        "zipCode": "98101",
+        "country": "USA"
+      }
+    }
+  ],
+  "allClientOrganizationUnits": [
+    {
+      "id": "unit-001",
+      "name": "Test Unit",
+      "createdDate": "2024-11-01",
+      "updatedDate": null,
+      "description": "Unit description",
+      "tenant": {
+        "id": "tenant-001",
+        "name": "Test Tenant",
+        "createdDate": "2024-11-01"
+      },
+      "parentOrg": {
+        "__typename": "Tenant",
+         "id": "tenant-001",
+        "name": "Test Tenant"
+      }
+    }
+  ]
+}

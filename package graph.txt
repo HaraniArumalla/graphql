@@ -1,0 +1,674 @@
+package graph
+
+import (
+	"encoding/json"
+	"fmt"
+	"iam_services_main/graph/model"
+	"os"
+)
+
+func LoadResources(filePath string) ([]model.Resource, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %w", err)
+	}
+
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(data, &rawData); err != nil {
+		return nil, fmt.Errorf("could not unmarshal JSON: %w", err)
+	}
+
+	resourcesData, ok := rawData["allResources"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("could not find resources section")
+	}
+
+	var resources []model.Resource
+	for _, item := range resourcesData {
+		resource, err := unmarshalResource(item)
+		if err != nil {
+			return nil, fmt.Errorf("could not unmarshal resource: %w", err)
+		}
+		resources = append(resources, resource)
+	}
+
+	return resources, nil
+}
+
+// Unmarshal a polymorphic resource based on the "__typename" field
+func unmarshalResource(item interface{}) (model.Resource, error) {
+	itemBytes, err := json.Marshal(item)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal resource item: %w", err)
+	}
+
+	var typename struct {
+		TypeName string json:"__typename"
+	}
+	if err := json.Unmarshal(itemBytes, &typename); err != nil {
+		return nil, fmt.Errorf("could not determine resource type: %w", err)
+	}
+
+	switch typename.TypeName {
+	case "Account":
+		var account model.Account
+		if err := json.Unmarshal(itemBytes, &account); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Account: %w", err)
+		}
+		return account, nil
+	case "Role":
+		var role model.Role
+		if err := json.Unmarshal(itemBytes, &role); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Role: %w", err)
+		}
+		return role, nil
+	case "Tenant":
+		var tenant model.Tenant
+		if err := json.Unmarshal(itemBytes, &tenant); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Tenant: %w", err)
+		}
+		return tenant, nil
+	case "User":
+		var user model.User
+		if err := json.Unmarshal(itemBytes, &user); err != nil {
+			return nil, fmt.Errorf("could not unmarshal User: %w", err)
+		}
+		return user, nil
+	case "ClientOrganizationUnit":
+		var unit model.ClientOrganizationUnit
+		if err := json.Unmarshal(itemBytes, &unit); err != nil {
+			return nil, fmt.Errorf("could not unmarshal ClientOrganizationUnit: %w", err)
+		}
+		return unit, nil
+	default:
+		return nil, fmt.Errorf("unknown resource type: %s", typename.TypeName)
+	}
+}
+
+// LoadOrganizations loads organizations from a JSON file and returns a slice of pointers
+// LoadOrganizations loads organizations from a JSON file
+func LoadOrganizations(filePath string) ([]model.Organization, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %w", err)
+	}
+
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(data, &rawData); err != nil {
+		return nil, fmt.Errorf("could not unmarshal JSON: %w", err)
+	}
+
+	organizationsData, ok := rawData["allOrganizations"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("could not find organizations section")
+	}
+
+	var organizations []model.Organization
+	for _, item := range organizationsData {
+		org, err := unmarshalOrganization(item)
+		if err != nil {
+			return nil, fmt.Errorf("could not unmarshal organization: %w", err)
+		}
+		organizations = append(organizations, org)
+	}
+
+	return organizations, nil
+}
+
+// Unmarshal an organization based on the "__typename" field
+func unmarshalOrganization(item interface{}) (model.Organization, error) {
+	// Check if item is nil or empty
+	if item == nil {
+		return nil, fmt.Errorf("organization item is nil")
+	}
+
+	// Marshal the item into JSON bytes
+	itemBytes, err := json.Marshal(item)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal organization item: %w", err)
+	}
+
+	// Extract the __typename field to determine the type
+	var typename struct {
+		TypeName string json:"__typename"
+	}
+	if err := json.Unmarshal(itemBytes, &typename); err != nil {
+		return nil, fmt.Errorf("could not determine organization type: %w", err)
+	}
+
+	if typename.TypeName == "" {
+		return nil, fmt.Errorf("missing __typename field")
+	}
+
+	// Handle different organization types
+	switch typename.TypeName {
+	case "Root":
+		var root model.Root
+		if err := json.Unmarshal(itemBytes, &root); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Root: %w", err)
+		}
+		return root, nil
+
+	case "ClientOrganizationUnit":
+		var unit model.ClientOrganizationUnit
+		if err := json.Unmarshal(itemBytes, &unit); err != nil {
+			return nil, fmt.Errorf("could not unmarshal ClientOrganizationUnit: %w", err)
+		}
+		// Recursively unmarshal the parentOrg field
+		if unit.ParentOrg != nil {
+			parentOrg, err := unmarshalOrganization(unit.ParentOrg)
+			if err != nil {
+				return nil, fmt.Errorf("could not unmarshal parentOrg for ClientOrganizationUnit: %w", err)
+			}
+			unit.ParentOrg = parentOrg
+		}
+		return unit, nil
+
+	case "Tenant":
+		var tenant model.Tenant
+		if err := json.Unmarshal(itemBytes, &tenant); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Tenant: %w", err)
+		}
+		// Recursively unmarshal the parentOrg field
+		if tenant.ParentOrg != nil {
+			parentOrg, err := unmarshalOrganization(tenant.ParentOrg)
+			if err != nil {
+				return nil, fmt.Errorf("could not unmarshal parentOrg for Tenant: %w", err)
+			}
+			tenant.ParentOrg = parentOrg
+		}
+		return tenant, nil
+
+	case "Account":
+		var account model.Account
+		if err := json.Unmarshal(itemBytes, &account); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Account: %w", err)
+		}
+		// Recursively unmarshal the parentOrg field
+		if account.ParentOrg != nil {
+			parentOrg, err := unmarshalOrganization(account.ParentOrg)
+			if err != nil {
+				return nil, fmt.Errorf("could not unmarshal parentOrg for Account: %w", err)
+			}
+			account.ParentOrg = parentOrg
+		}
+		return account, nil
+
+	default:
+		return nil, fmt.Errorf("unknown organization type: %s", typename.TypeName)
+	}
+}
+
+// LoadTenants loads tenants from a JSON file and returns a slice of pointers
+func LoadTenants(filePath string) ([]*model.Tenant, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %w", err)
+	}
+
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(data, &rawData); err != nil {
+		return nil, fmt.Errorf("could not unmarshal JSON: %w", err)
+	}
+
+	tenantsData, ok := rawData["allTenants"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("could not find tenants section")
+	}
+
+	var tenants []*model.Tenant
+	for _, item := range tenantsData {
+		itemBytes, err := json.Marshal(item)
+		if err != nil {
+			return nil, fmt.Errorf("could not marshal tenant data: %w", err)
+		}
+
+		tenant, err := unmarshalTenant(itemBytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not unmarshal tenant: %w", err)
+		}
+		tenants = append(tenants, tenant)
+	}
+
+	return tenants, nil
+}
+
+// unmarshalTenant unmarshals a Tenant struct with polymorphic parentOrg
+func unmarshalTenant(data []byte) (*model.Tenant, error) {
+	var aux struct {
+		ID          string             json:"id"
+		Name        string             json:"name"
+		CreatedDate string             json:"createdDate"
+		UpdatedDate *string            json:"updatedDate"
+		Description *string            json:"description"
+		ParentOrg   json.RawMessage    json:"parentOrg"
+		ContactInfo *model.ContactInfo json:"contactInfo"
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return nil, fmt.Errorf("could not unmarshal tenant fields: %w", err)
+	}
+
+	// Handle the polymorphic ParentOrg field
+	org, err := unmarshalOrganizationTenant(aux.ParentOrg)
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal parentOrg: %w", err)
+	}
+
+	tenant := &model.Tenant{
+		ID:          aux.ID,
+		Name:        aux.Name,
+		CreatedDate: aux.CreatedDate,
+		UpdatedDate: aux.UpdatedDate,
+		Description: aux.Description,
+		ParentOrg:   org,
+		ContactInfo: aux.ContactInfo,
+	}
+
+	return tenant, nil
+}
+
+// unmarshalOrganization unmarshals an Organization interface based on the __typename field
+func unmarshalOrganizationTenant(data json.RawMessage) (model.Organization, error) {
+	if len(data) == 0 {
+		return nil, nil
+	}
+
+	var typeName struct {
+		TypeName string json:"__typename"
+	}
+	if err := json.Unmarshal(data, &typeName); err != nil {
+		return nil, fmt.Errorf("could not determine organization type: %w", err)
+	}
+
+	switch typeName.TypeName {
+	case "Root":
+		var root model.Root
+		if err := json.Unmarshal(data, &root); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Root: %w", err)
+		}
+		return root, nil
+
+	case "ClientOrganizationUnit":
+		var unit model.ClientOrganizationUnit
+		if err := json.Unmarshal(data, &unit); err != nil {
+			return nil, fmt.Errorf("could not unmarshal ClientOrganizationUnit: %w", err)
+		}
+		return unit, nil
+
+	case "Account":
+		var account model.Account
+		if err := json.Unmarshal(data, &account); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Account: %w", err)
+		}
+		return account, nil
+
+	default:
+		return nil, fmt.Errorf("unknown organization type: %s", typeName.TypeName)
+	}
+}
+
+// LoadAccounts loads accounts from a JSON file and returns a slice of pointers
+func LoadAccounts(filePath string) ([]*model.Account, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %w", err)
+	}
+
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(data, &rawData); err != nil {
+		return nil, fmt.Errorf("could not unmarshal JSON: %w", err)
+	}
+
+	accountsData, ok := rawData["allAccounts"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("could not find 'allAccounts' section in JSON")
+	}
+
+	var accounts []*model.Account
+	for _, item := range accountsData {
+		itemBytes, err := json.Marshal(item)
+		if err != nil {
+			return nil, fmt.Errorf("could not marshal account data: %w", err)
+		}
+
+		account, err := unmarshalAccount(itemBytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not unmarshal Account: %w", err)
+		}
+		accounts = append(accounts, account)
+	}
+
+	return accounts, nil
+}
+
+// unmarshalAccount handles the unmarshalling of Account with polymorphic fields.
+func unmarshalAccount(data []byte) (*model.Account, error) {
+	var aux struct {
+		ID          string             json:"id"
+		Name        string             json:"name"
+		CreatedDate string             json:"createdDate"
+		UpdatedDate *string            json:"updatedDate"
+		Description *string            json:"description"
+		Tenant      *model.Tenant      json:"tenant"
+		ParentOrg   json.RawMessage    json:"parentOrg"
+		BillingInfo *model.BillingInfo json:"billingInfo"
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return nil, fmt.Errorf("could not unmarshal account fields: %w", err)
+	}
+
+	// Handle the polymorphic ParentOrg field
+	org, err := unmarshalOrganizationAccounts(aux.ParentOrg)
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal parentOrg: %w", err)
+	}
+
+	// Create and return the Account
+	account := &model.Account{
+		ID:          aux.ID,
+		Name:        aux.Name,
+		CreatedDate: aux.CreatedDate,
+		UpdatedDate: aux.UpdatedDate,
+		Description: aux.Description,
+		Tenant:      aux.Tenant,
+		ParentOrg:   org,
+		BillingInfo: aux.BillingInfo,
+	}
+	return account, nil
+}
+
+// unmarshalOrganization handles polymorphic unmarshalling of the Organization interface.
+func unmarshalOrganizationAccounts(data json.RawMessage) (model.Organization, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("parentOrg data is empty")
+	}
+
+	// Extract the __typename field to determine the type
+	var typeName struct {
+		TypeName string json:"__typename"
+	}
+
+	if err := json.Unmarshal(data, &typeName); err != nil {
+		return nil, fmt.Errorf("could not determine organization type: %w", err)
+	}
+
+	switch typeName.TypeName {
+	case "Root":
+		var root model.Root
+		if err := json.Unmarshal(data, &root); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Root: %w", err)
+		}
+		return root, nil
+
+	case "Tenant":
+		var tenant model.Tenant
+		if err := json.Unmarshal(data, &tenant); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Tenant: %w", err)
+		}
+		return tenant, nil
+
+	case "ClientOrganizationUnit":
+		var unit model.ClientOrganizationUnit
+		if err := json.Unmarshal(data, &unit); err != nil {
+			return nil, fmt.Errorf("could not unmarshal ClientOrganizationUnit: %w", err)
+		}
+		return unit, nil
+
+	default:
+		return nil, fmt.Errorf("unknown organization type: %s", typeName.TypeName)
+	}
+}
+
+// LoadRoles loads roles from a JSON file and returns a slice of pointers
+func LoadRoles(filePath string) ([]*model.Role, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %w", err)
+	}
+
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(data, &rawData); err != nil {
+		return nil, fmt.Errorf("could not unmarshal JSON: %w", err)
+	}
+
+	rolesData, ok := rawData["allRoles"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("could not find 'allRoles' section in JSON")
+	}
+
+	var roles []*model.Role
+	for _, item := range rolesData {
+		itemBytes, err := json.Marshal(item)
+		if err != nil {
+			return nil, fmt.Errorf("could not marshal role data: %w", err)
+		}
+
+		role, err := unmarshalRole(itemBytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not unmarshal Role: %w", err)
+		}
+		roles = append(roles, role)
+	}
+
+	return roles, nil
+}
+
+// unmarshalRole handles the unmarshalling of Role with polymorphic fields.
+func unmarshalRole(data []byte) (*model.Role, error) {
+	var aux struct {
+		ID              string              json:"id"
+		Name            string              json:"name"
+		CreatedDate     string              json:"createdDate"
+		UpdatedDate     *string             json:"updatedDate"
+		Version         string              json:"version"
+		Description     *string             json:"description"
+		Permissions     []*model.Permission json:"permissions"
+		RoleType        model.RoleTypeEnum  json:"roleType"
+		AssignableScope json.RawMessage     json:"assignableScope"
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return nil, fmt.Errorf("could not unmarshal role fields: %w", err)
+	}
+
+	// Handle the polymorphic AssignableScope field
+	scope, err := unmarshalResourceRole(aux.AssignableScope)
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal assignableScope: %w", err)
+	}
+
+	// Create and return the Role
+	role := &model.Role{
+		ID:              aux.ID,
+		Name:            aux.Name,
+		CreatedDate:     aux.CreatedDate,
+		UpdatedDate:     aux.UpdatedDate,
+		Version:         aux.Version,
+		Description:     aux.Description,
+		Permissions:     aux.Permissions,
+		RoleType:        aux.RoleType,
+		AssignableScope: scope,
+	}
+	return role, nil
+}
+
+// unmarshalResource handles polymorphic unmarshalling of the Resource interface.
+func unmarshalResourceRole(data json.RawMessage) (model.Resource, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("assignableScope data is empty")
+	}
+
+	var typeName struct {
+		TypeName string json:"__typename"
+	}
+
+	if err := json.Unmarshal(data, &typeName); err != nil {
+		return nil, fmt.Errorf("could not determine resource type: %w", err)
+	}
+
+	switch typeName.TypeName {
+	case "Account":
+		var account model.Account
+		if err := json.Unmarshal(data, &account); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Account: %w", err)
+		}
+		return account, nil
+
+	case "ClientOrganizationUnit":
+		var unit model.ClientOrganizationUnit
+		if err := json.Unmarshal(data, &unit); err != nil {
+			return nil, fmt.Errorf("could not unmarshal ClientOrganizationUnit: %w", err)
+		}
+		return unit, nil
+
+	case "Tenant":
+		var tenant model.Tenant
+		if err := json.Unmarshal(data, &tenant); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Tenant: %w", err)
+		}
+		return tenant, nil
+
+	case "Root":
+		var root model.Root
+		if err := json.Unmarshal(data, &root); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Root: %w", err)
+		}
+		return root, nil
+
+	default:
+		return nil, fmt.Errorf("unknown resource type: %s", typeName.TypeName)
+	}
+}
+
+func LoadPermissions(filePath string) ([]*model.Permission, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %w", err)
+	}
+
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(data, &rawData); err != nil {
+		return nil, fmt.Errorf("could not unmarshal JSON: %w", err)
+	}
+
+	permissionsData, ok := rawData["allPermissions"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("could not find permissions section")
+	}
+
+	var permissions []*model.Permission
+	permBytes, err := json.Marshal(permissionsData)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal permissions data: %w", err)
+	}
+
+	if err := json.Unmarshal(permBytes, &permissions); err != nil {
+		return nil, fmt.Errorf("could not unmarshal permissions: %w", err)
+	}
+
+	return permissions, nil
+}
+
+func LoadBillingInfos(filePath string) ([]*model.BillingInfo, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %w", err)
+	}
+
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(data, &rawData); err != nil {
+		return nil, fmt.Errorf("could not unmarshal JSON: %w", err)
+	}
+
+	billingInfosData, ok := rawData["allBillingInfos"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("could not find 'allBillingInfos' section in JSON")
+	}
+
+	var billingInfos []*model.BillingInfo
+	for _, item := range billingInfosData {
+		itemBytes, err := json.Marshal(item)
+		if err != nil {
+			return nil, fmt.Errorf("could not marshal billing info item: %w", err)
+		}
+
+		var billingInfo model.BillingInfo
+		if err := json.Unmarshal(itemBytes, &billingInfo); err != nil {
+			return nil, fmt.Errorf("could not unmarshal billing info: %w", err)
+		}
+
+		billingInfos = append(billingInfos, &billingInfo)
+	}
+
+	return billingInfos, nil
+}
+
+func LoadClientOrganizationUnits(filePath string) ([]*model.ClientOrganizationUnit, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %w", err)
+	}
+
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(data, &rawData); err != nil {
+		return nil, fmt.Errorf("could not unmarshal JSON: %w", err)
+	}
+
+	unitsData, ok := rawData["allClientOrganizationUnits"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("could not find 'allClientOrganizationUnits' section in JSON")
+	}
+
+	var units []*model.ClientOrganizationUnit
+	for _, item := range unitsData {
+		itemBytes, err := json.Marshal(item)
+		if err != nil {
+			return nil, fmt.Errorf("could not marshal organization unit: %w", err)
+		}
+
+		unit, err := unmarshalClientOrganizationUnit(itemBytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not unmarshal ClientOrganizationUnit: %w", err)
+		}
+		units = append(units, unit)
+	}
+
+	return units, nil
+}
+
+// unmarshalClientOrganizationUnit handles the unmarshalling of ClientOrganizationUnit with polymorphic fields.
+func unmarshalClientOrganizationUnit(data []byte) (*model.ClientOrganizationUnit, error) {
+	var aux struct {
+		ID          string          json:"id"
+		Name        string          json:"name"
+		CreatedDate string          json:"createdDate"
+		UpdatedDate *string         json:"updatedDate"
+		Description *string         json:"description"
+		Tenant      *model.Tenant   json:"tenant"
+		ParentOrg   json.RawMessage json:"parentOrg"
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return nil, fmt.Errorf("could not unmarshal organization unit fields: %w", err)
+	}
+
+	// Handle the polymorphic ParentOrg field
+	org, err := unmarshalOrganization(aux.ParentOrg)
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal parentOrg: %w", err)
+	}
+
+	// Create and return the ClientOrganizationUnit
+	unit := &model.ClientOrganizationUnit{
+		ID:          aux.ID,
+		Name:        aux.Name,
+		CreatedDate: aux.CreatedDate,
+		UpdatedDate: aux.UpdatedDate,
+		Description: aux.Description,
+		Tenant:      aux.Tenant,
+		ParentOrg:   org,
+	}
+	return unit, nil
+}

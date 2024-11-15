@@ -1,0 +1,504 @@
+package resolvers
+
+import (
+	"context"
+	"fmt"
+	"iam_services_main/graph"
+	"iam_services_main/graph/model"
+	"log"
+	"sync"
+	"time"
+)
+
+// This file will not be regenerated automatically.
+//
+// It serves as dependency injection for your app, add any dependencies you require here.
+
+// Resolver struct that includes any dependencies, like a database connection
+// Variables to hold the loaded data
+var (
+	resources               []model.Resource
+	organizations           []model.Organization
+	tenants                 []*model.Tenant
+	accounts                []*model.Account
+	roles                   []*model.Role
+	allPermissions          []*model.Permission
+	billingInfos            []*model.BillingInfo
+	clientOrganizationUnits []*model.ClientOrganizationUnit
+	mutex                   sync.Mutex
+)
+
+func init() {
+	var err error
+
+	// Load all resources
+	resources, err = graph.LoadResources("mockdata/mock_data.json")
+	if err != nil {
+		log.Fatalf("Failed to load resources: %v", err)
+	}
+
+	// Load all tenants
+	organizations, err = graph.LoadOrganizations("mockdata/mock_data.json")
+	if err != nil {
+		log.Fatalf("Failed to load tenants: %v", err)
+	}
+
+	// Load all tenants
+	tenants, err = graph.LoadTenants("mockdata/mock_data.json")
+	if err != nil {
+		log.Fatalf("Failed to load tenants: %v", err)
+	}
+
+	// Load all tenants
+	accounts, err = graph.LoadAccounts("mockdata/mock_data.json")
+	if err != nil {
+		log.Fatalf("Failed to load tenants: %v", err)
+	}
+
+	// Load all roles
+	roles, err = graph.LoadRoles("mockdata/mock_data.json")
+	if err != nil {
+		log.Fatalf("Failed to load roles: %v", err)
+	}
+
+	allPermissions, err = graph.LoadPermissions("mockdata/mock_data.json")
+	if err != nil {
+		log.Fatalf("Failed to load roles: %v", err)
+	}
+
+	clientOrganizationUnits, err = graph.LoadClientOrganizationUnits("mockdata/mock_data.json")
+	if err != nil {
+		log.Fatalf("Failed to load roles: %v", err)
+	}
+
+}
+
+// GetOrganization resolver to fetch a single organization by ID
+func (r *queryResolver) GetOrganization(ctx context.Context, id string) (model.Organization, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for _, org := range organizations {
+		if org.GetID() == id {
+			return org, nil
+		}
+	}
+	return nil, fmt.Errorf("organization with ID '%s' not found", id)
+}
+
+// AllOrganizations resolver to fetch all organizations
+func (r *queryResolver) AllOrganizations(ctx context.Context) ([]model.Organization, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	return organizations, nil
+}
+
+// 2. Resource Resolvers
+func (r *queryResolver) GetResource(ctx context.Context, id string) (model.Resource, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for _, res := range resources {
+		if res.GetID() == id {
+			return res, nil
+		}
+	}
+	return nil, fmt.Errorf("resource with ID '%s' not found", id)
+}
+
+// AllResources resolver to fetch all resources
+func (r *queryResolver) AllResources(ctx context.Context) ([]model.Resource, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	return resources, nil
+}
+
+// 3. Tenant Resolvers
+func (r *queryResolver) GetTenant(ctx context.Context, id string) (*model.Tenant, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for _, tenant := range tenants {
+		if tenant.ID == id {
+			return tenant, nil
+		}
+	}
+	return nil, fmt.Errorf("tenant with ID '%s' not found", id)
+}
+
+func (r *queryResolver) AllTenants(ctx context.Context) ([]*model.Tenant, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	return tenants, nil
+}
+
+// 4. Account Resolvers
+func (r *queryResolver) GetAccount(ctx context.Context, id string) (*model.Account, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for _, account := range accounts {
+		if account.ID == id {
+			return account, nil
+		}
+	}
+	return nil, fmt.Errorf("account with ID '%s' not found", id)
+}
+
+func (r *queryResolver) AllAccounts(ctx context.Context) ([]*model.Account, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	return accounts, nil
+}
+
+// Helper function to create a string pointer
+func stringPtr(s string) *string {
+	return &s
+}
+
+// 5. Role Resolvers
+func (r *queryResolver) GetRole(ctx context.Context, id string) (*model.Role, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for _, role := range roles {
+		if role.ID == id {
+			return role, nil
+		}
+	}
+	return nil, fmt.Errorf("role with ID '%s' not found", id)
+}
+
+func (r *queryResolver) GetClientOrganizationUnit(ctx context.Context, id string) (*model.ClientOrganizationUnit, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for _, unit := range clientOrganizationUnits {
+		if unit.ID == id {
+			return unit, nil
+		}
+	}
+	return nil, fmt.Errorf("client organization unit with ID '%s' not found", id)
+}
+
+func (r *queryResolver) AllClientOrganizationUnits(ctx context.Context) ([]*model.ClientOrganizationUnit, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	return clientOrganizationUnits, nil
+}
+
+func (r *queryResolver) AllRoles(ctx context.Context) ([]*model.Role, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	return roles, nil
+}
+
+func generateID() string {
+	return fmt.Sprintf("tenant-%d", time.Now().UnixNano())
+}
+
+// CreateTenant resolver
+func (r *mutationResolver) CreateTenant(ctx context.Context, input model.CreateTenantInput) (*model.Tenant, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// Generate a new Tenant
+	newTenant := &model.Tenant{
+		ID:          generateID(),
+		Name:        input.Name,
+		Description: input.Description,
+		CreatedDate: time.Now().Format("2006-01-02"),
+		UpdatedDate: nil,
+	}
+
+	// Add the new tenant to the list
+	tenants = append(tenants, newTenant)
+	return newTenant, nil
+}
+
+// UpdateTenant resolver
+func (r *mutationResolver) UpdateTenant(ctx context.Context, input model.UpdateTenantInput) (*model.Tenant, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for _, tenant := range tenants {
+		if tenant.ID == input.ID {
+			if input.Name != nil {
+				tenant.Name = *input.Name
+			}
+			if input.Description != nil {
+				tenant.Description = input.Description
+			}
+			tenant.UpdatedDate = stringPtr(time.Now().Format("2006-01-02"))
+			return tenant, nil
+		}
+	}
+	return nil, fmt.Errorf("tenant with ID '%s' not found", input.ID)
+}
+
+// DeleteTenant resolver
+func (r *mutationResolver) DeleteTenant(ctx context.Context, id string) (bool, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for i, tenant := range tenants {
+		if tenant.ID == id {
+			tenants = append(tenants[:i], tenants[i+1:]...)
+			return true, nil
+		}
+	}
+	return false, fmt.Errorf("tenant with ID '%s' not found", id)
+}
+
+func (r *mutationResolver) CreateRole(ctx context.Context, input model.CreateRoleInput) (*model.Role, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// Generate a new Role ID
+	newRole := &model.Role{
+		ID:              generateID(),
+		Name:            input.Name,
+		CreatedDate:     time.Now().Format("2006-01-02"),
+		UpdatedDate:     nil,
+		Version:         input.Version,
+		Description:     input.Description,
+		RoleType:        input.RoleType,
+		Permissions:     getPermissionsByIds(input.Permissions),
+		AssignableScope: getResourceById(input.AssignableScopeRef),
+	}
+
+	// Add the new role to the list
+	roles = append(roles, newRole)
+	return newRole, nil
+}
+
+// 2. Update Role Resolver
+func (r *mutationResolver) UpdateRole(ctx context.Context, input model.UpdateRoleInput) (*model.Role, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for _, role := range roles {
+		if role.ID == input.ID {
+			// Update fields if provided
+			if input.Name != nil {
+				role.Name = *input.Name
+			}
+			if input.Version != "" {
+				role.Version = input.Version
+			}
+			if input.Description != nil {
+				role.Description = input.Description
+			}
+			if input.Permissions != nil {
+				role.Permissions = getPermissionsByIds(input.Permissions)
+			}
+			if input.RoleType != nil {
+				role.RoleType = *input.RoleType
+			}
+			if input.ScopeID != nil {
+				role.AssignableScope = getResourceById(*input.ScopeID)
+			}
+			role.UpdatedDate = stringPtr(time.Now().Format("2006-01-02"))
+			return role, nil
+		}
+	}
+	return nil, fmt.Errorf("role with ID '%s' not found", input.ID)
+}
+
+// 3. Delete Role Resolver
+func (r *mutationResolver) DeleteRole(ctx context.Context, id string) (bool, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for i, role := range roles {
+		if role.ID == id {
+			// Remove the role from the slice
+			roles = append(roles[:i], roles[i+1:]...)
+			return true, nil
+		}
+	}
+	return false, fmt.Errorf("role with ID '%s' not found", id)
+}
+
+func getPermissionsByIds(ids []string) []*model.Permission {
+	var permissions []*model.Permission
+	for _, id := range ids {
+		for _, perm := range allPermissions {
+			if perm.ID == id {
+				permissions = append(permissions, perm)
+				break
+			}
+		}
+	}
+	return permissions
+}
+
+func (r *mutationResolver) CreateAccount(ctx context.Context, input model.CreateAccountInput) (*model.Account, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	newAccount := &model.Account{
+		ID:          generateID(),
+		Name:        input.Name,
+		CreatedDate: time.Now().Format("2006-01-02"),
+		UpdatedDate: nil,
+		Description: input.Description,
+		Tenant:      getTenantById(input.TenantID),
+		ParentOrg:   getOrganizationById(input.ParentOrgID),
+		BillingInfo: getBillingInfoById(input.BillingInfoID),
+	}
+
+	accounts = append(accounts, newAccount)
+	return newAccount, nil
+}
+
+// Update Account
+func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccountInput) (*model.Account, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for _, account := range accounts {
+		if account.ID == input.ID {
+			if input.Name != nil {
+				account.Name = *input.Name
+			}
+			if input.Description != nil {
+				account.Description = input.Description
+			}
+			account.UpdatedDate = stringPtr(time.Now().Format("2021-01-02"))
+			account.Tenant = getTenantById(*input.TenantID)
+			account.ParentOrg = getOrganizationById(*input.ParentOrgID)
+			account.BillingInfo = getBillingInfoById(input.BillingInfoID)
+			return account, nil
+		}
+	}
+	return nil, fmt.Errorf("account with ID '%s' not found", input.ID)
+}
+
+// Delete Account
+func (r *mutationResolver) DeleteAccount(ctx context.Context, id string) (bool, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for i, account := range accounts {
+		if account.ID == id {
+			accounts = append(accounts[:i], accounts[i+1:]...)
+			return true, nil
+		}
+	}
+	return false, fmt.Errorf("account with ID '%s' not found", id)
+}
+
+func (r *mutationResolver) CreateClientOrganizationUnit(ctx context.Context, input model.CreateClientOrganizationUnitInput) (*model.ClientOrganizationUnit, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// Create a new ClientOrganizationUnit
+	newOrgUnit := &model.ClientOrganizationUnit{
+		ID:          generateID(),
+		Name:        input.Name,
+		Description: input.Description,
+		CreatedDate: time.Now().Format("2006-01-02"),
+		UpdatedDate: nil,
+		Tenant:      getTenantById(input.TenantID),
+		ParentOrg:   getParentOrgByID(input.ParentOrgID),
+	}
+
+	// Add the new organization unit to the list
+	clientOrganizationUnits = append(clientOrganizationUnits, newOrgUnit)
+	return newOrgUnit, nil
+}
+
+func (r *mutationResolver) UpdateClientOrganizationUnit(ctx context.Context, input model.UpdateClientOrganizationUnitInput) (*model.ClientOrganizationUnit, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for _, unit := range clientOrganizationUnits {
+		if unit.ID == input.ID {
+			// Update fields if provided
+			if input.Name != nil {
+				unit.Name = *input.Name
+			}
+			if input.Description != nil {
+				unit.Description = input.Description
+			}
+			if input.TenantID != nil {
+				unit.Tenant = getTenantById(*input.TenantID)
+			}
+			if input.ParentOrgID != nil {
+				unit.ParentOrg = getParentOrgByID(*input.ParentOrgID)
+			}
+			unit.UpdatedDate = stringPtr(time.Now().Format("2006-01-02"))
+			return unit, nil
+		}
+	}
+	return nil, fmt.Errorf("client organization unit with ID '%s' not found", input.ID)
+}
+
+func (r *mutationResolver) DeleteClientOrganizationUnit(ctx context.Context, id string) (bool, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for i, unit := range clientOrganizationUnits {
+		if unit.ID == id {
+			// Remove the organization unit from the slice
+			clientOrganizationUnits = append(clientOrganizationUnits[:i], clientOrganizationUnits[i+1:]...)
+			return true, nil
+		}
+	}
+	return false, fmt.Errorf("client organization unit with ID '%s' not found", id)
+}
+
+func getTenantById(id string) *model.Tenant {
+	for _, tenant := range tenants {
+		if tenant.ID == id {
+			return tenant
+		}
+	}
+	return nil
+}
+
+// Fetch an Organization by ID
+func getOrganizationById(id string) model.Organization {
+	for _, org := range organizations {
+		if org.GetID() == id {
+			return org
+		}
+	}
+	return nil
+}
+
+func getParentOrgByID(orgID string) model.Organization {
+	for _, org := range organizations {
+		if org.GetID() == orgID {
+			return org
+		}
+	}
+	return nil
+}
+
+// Fetch Billing Info by ID
+func getBillingInfoById(id string) *model.BillingInfo {
+	for _, info := range billingInfos {
+		if info.ID == id {
+			return info
+		}
+	}
+	return nil
+}
+
+func getResourceById(id string) model.Resource {
+	for _, resource := range resources {
+		if resource.GetID() == id {
+			return resource
+		}
+	}
+	log.Printf("Resource with ID '%s' not found", id)
+	return nil
+}
