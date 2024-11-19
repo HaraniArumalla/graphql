@@ -1,0 +1,16 @@
+add this mock Json "getAllRoot": [
+      {
+        "id": "root-001",
+        "name": "Global Root",
+        "createdDate": "2024-01-01",
+        "updatedDate": null,
+        "description": "This is the root organization for global operations."
+      },
+      {
+        "id": "root-002",
+        "name": "Regional Root",
+        "createdDate": "2024-06-01",
+        "updatedDate": null,
+        "description": "This is the root organization for regional operations."
+      }
+    ],
