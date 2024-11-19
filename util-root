@@ -1,0 +1,37 @@
+// LoadRoots loads Root objects from a JSON file and returns a slice of pointers to model.Root
+func LoadRoots(filePath string) ([]*model.Root, error) {
+	// Read the JSON file
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %w", err)
+	}
+
+	// Parse the raw JSON data
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(data, &rawData); err != nil {
+		return nil, fmt.Errorf("could not unmarshal JSON: %w", err)
+	}
+
+	// Extract the "Root" section from the JSON
+	rootsData, ok := rawData["Root"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("could not find 'Root' section in JSON")
+	}
+
+	// Convert raw JSON data into model.Root objects
+	var roots []*model.Root
+	for _, item := range rootsData {
+		itemBytes, err := json.Marshal(item)
+		if err != nil {
+			return nil, fmt.Errorf("could not marshal root data: %w", err)
+		}
+
+		root := &model.Root{}
+		if err := json.Unmarshal(itemBytes, root); err != nil {
+			return nil, fmt.Errorf("could not unmarshal Root: %w", err)
+		}
+		roots = append(roots, root)
+	}
+
+	return roots, nil
+}
