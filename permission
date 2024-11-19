@@ -1,0 +1,58 @@
+// CreatePermission creates a new permission.
+func (r *mutationResolver) CreatePermission(ctx context.Context, input model.CreatePermissionInput) (*model.Permission, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// Create a new permission
+	newPermission := &model.Permission{
+		ID:      generateID(),
+		Name:    input.Name,
+		Action:  input.Action,
+		Service: &model.Service{ID: input.ServiceRef, Name: "Mock Service"}, // Replace with actual service lookup
+	}
+
+	// Add the permission to the in-memory store
+	permissions = append(permissions, newPermission)
+
+	return newPermission, nil
+}
+
+// UpdatePermission updates an existing permission.
+func (r *mutationResolver) UpdatePermission(ctx context.Context, input model.UpdatePermissionInput) (*model.Permission, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// Find and update the permission
+	for _, permission := range permissions {
+		if permission.ID == input.ID {
+			if input.Name != nil {
+				permission.Name = *input.Name
+			}
+			if input.Action != nil {
+				permission.Action = *input.Action
+			}
+			if input.ServiceRef != nil {
+				permission.Service = &model.Service{ID: *input.ServiceRef, Name: "Updated Mock Service"} // Replace with actual service lookup
+			}
+			return permission, nil
+		}
+	}
+
+	return nil, errors.New("permission not found")
+}
+
+// DeletePermission deletes an existing permission.
+func (r *mutationResolver) DeletePermission(ctx context.Context, id string) (bool, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// Find and delete the permission
+	for i, permission := range permissions {
+		if permission.ID == id {
+			permissions = append(permissions[:i], permissions[i+1:]...) // Remove from slice
+			return true, nil
+		}
+	}
+
+	return false, errors.New("permission not found")
+}
